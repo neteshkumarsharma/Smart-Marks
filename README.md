@@ -5,7 +5,7 @@ SmartMarks is a high-performance, real-time web application designed to store an
 <img width="2560" height="1440" alt="Image" src="https://github.com/user-attachments/assets/6136aad9-af07-42df-aa7c-dfd9c61a390d" />
 
 ## Live Website Link 
-- https://www.instagram.com/
+- https://smart-bookmarks-two-amber.vercel.app/
 
 ## ✨ Features
 - Google OAuth Integration: Secure one-click login via Supabase Auth.
