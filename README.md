@@ -7,6 +7,15 @@ SmartMarks is a high-performance, real-time web application designed to store an
 ## Live Website Link 
 - https://smart-bookmarks-two-amber.vercel.app/
 
+## 🛠️ Technical Challenges (Solving Real-Time Sync Latency)
+### Challenge 
+Initially, adding a bookmark required a manual refresh to appear, even though deletions worked instantly. This was caused by the database only broadcasting partial row data and network latency in the WebSocket channel.
+### The Solution
+- Database Level: Executed ALTER TABLE bookmarks REPLICA IDENTITY FULL to ensure the entire data payload (Title & URL) is broadcasted on every insert.
+- Frontend Level: Implemented Optimistic UI Updates. By using .select() on the insert query, the app updates the local React state immediately upon server confirmation, bypassing WebSocket lag.
+### Result
+- A "zero-latency" user experience where bookmarks appear the millisecond the user clicks "Save."
+
 ## ✨ Features
 - Google OAuth Integration: Secure one-click login via Supabase Auth.
 
