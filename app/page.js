@@ -29,7 +29,6 @@ export default function Home() {
   useEffect(() => {
     const initApp = async () => {
       try {
-
         const { data: { user }, error } = await supabase.auth.getUser();
         if (error) throw error;
 
@@ -46,14 +45,18 @@ export default function Home() {
 
     initApp();
 
-
     const channel = supabase
       .channel("realtime-bookmarks")
       .on("postgres_changes",
         { event: "*", schema: "public", table: "bookmarks" },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setBookmarks((prev) => [payload.new, ...prev]);
+            setBookmarks((prev) => {
+              // Safety: Prevent duplicates if Optimistic UI already added it
+              const exists = prev.some(b => b.id === payload.new.id);
+              if (exists) return prev;
+              return [payload.new, ...prev];
+            });
           } else if (payload.eventType === "DELETE") {
             setBookmarks((prev) => prev.filter((b) => b.id !== payload.old.id));
           }
@@ -64,6 +67,7 @@ export default function Home() {
       supabase.removeChannel(channel);
     };
   }, [supabase, fetchBookmarks]);
+
 
   const handleLogin = async () => {
     try {
@@ -85,26 +89,30 @@ export default function Home() {
     setBookmarks([]);
   };
 
+
   const addBookmark = async (e) => {
     e.preventDefault();
     if (!title || !url || !user) return;
 
-    try {
-      const { error } = await supabase
-        .from("bookmarks")
-        .insert([{ title, url, user_id: user.id }]);
 
-      if (error) throw error;
+    const { data, error } = await supabase
+      .from("bookmarks")
+      .insert([{ title, url, user_id: user.id }])
+      .select();
 
+    if (!error && data) {
+
+      setBookmarks((prev) => [data[0], ...prev]);
       setTitle("");
       setUrl("");
-    } catch (err) {
-      alert("Failed to add bookmark: " + err.message);
+    } else {
+      console.error("Insert error:", error?.message);
     }
   };
 
   const deleteBookmark = async (id) => {
     try {
+
       const { error } = await supabase
         .from("bookmarks")
         .delete()
@@ -145,7 +153,6 @@ export default function Home() {
     );
   }
 
-
   return (
     <div className="min-h-screen bg-[#020617] pb-20 text-slate-100 flex flex-col items-center font-sans">
       <nav className="w-full sticky top-0 z-50 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
@@ -161,7 +168,6 @@ export default function Home() {
       </nav>
 
       <main className="w-full max-w-xl px-6 mt-10">
-        {/* Form Container */}
         <section className="mb-10 rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
           <h2 className="mb-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Quick Add</h2>
@@ -184,15 +190,13 @@ export default function Home() {
           </form>
         </section>
 
-        {/* List Header */}
         <div className="flex items-center justify-between mb-6 px-2">
-          <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 font-bold">Stored Links</h2>
+          <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Stored Links</h2>
           <span className="rounded-full bg-slate-900 border border-slate-800 px-3 py-1 text-[10px] font-black text-blue-400 shadow-inner">
             {bookmarks.length} ITEMS
           </span>
         </div>
 
-        {/* Bookmark List */}
         <div className="space-y-3">
           {bookmarks.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-800 py-20 text-slate-700 bg-slate-900/20">
